@@ -75,6 +75,21 @@ services:
     network_mode: service:wavelog-main
     restart: unless-stopped
 
+  # Run on demand to work with volumes
+  #   - docker compose run --rm wavelog-aux
+  wavelog-aux:
+    image: debian:12
+    container_name: wavelog-aux
+    command: /bin/bash
+    volumes:
+      - wavelog-dbdata:/wavelog/dbdata
+      - wavelog-uploads:/wavelog/uploads
+      - wavelog-userdata:/wavelog/userdata
+      - wavelog-config:/wavelog/config
+      - ${PWD}/volumes/wavelog-aux:/bindmount
+    restart: no
+    profiles: ["disabled"] # prevent automatic starting
+
 volumes:
   wavelog-dbdata:
   wavelog-uploads:
