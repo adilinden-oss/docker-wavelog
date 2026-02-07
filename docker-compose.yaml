@@ -11,6 +11,8 @@ services:
     volumes:
       - wavelog-dbdata:/var/lib/mysql
     restart: unless-stopped
+    networks:
+      - wavelog-db
 
   wavelog-main:
     image: ghcr.io/wavelog/wavelog:${WAVELOG_VERSION}
@@ -26,6 +28,9 @@ services:
     #ports:
     #  - "8086:80"
     restart: unless-stopped
+    networks:
+      - wavelog-proxy
+      - wavelog-db
 
   wavelog-caddy:
     image: caddy-cloudflare:${CADDY_VERSION}
@@ -47,6 +52,8 @@ services:
       - "80:80"
       - "443:443"
     restart: unless-stopped
+    networks:
+      - wavelog-proxy
 
   wavelog-tailscale:
     image: tailscale/tailscale:${TAILSCALE_VERSION}
@@ -76,4 +83,10 @@ volumes:
   caddy_data:
   caddy_config:
   tailscale_state:
+
+networks:
+  wavelog-proxy:
+    driver: bridge
+  wavelog-db:
+    driver: bridge
 
