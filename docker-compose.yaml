@@ -1,0 +1,79 @@
+services:
+
+  wavelog-db:
+    image: mariadb:${MARIADB_VERSION}
+    container_name: wavelog-db
+    environment:
+      MARIADB_RANDOM_ROOT_PASSWORD: yes
+      MARIADB_DATABASE: ${WAVELOG_DB}
+      MARIADB_USER: ${WAVELOG_DB_USER}
+      MARIADB_PASSWORD: ${WAVELOG_DB_PWD}
+    volumes:
+      - wavelog-dbdata:/var/lib/mysql
+    restart: unless-stopped
+
+  wavelog-main:
+    image: ghcr.io/wavelog/wavelog:${WAVELOG_VERSION}
+    container_name: wavelog-main
+    depends_on:
+      - wavelog-db
+    environment:
+      CI_ENV: docker
+    volumes:
+      - wavelog-config:/var/www/html/application/config/docker
+      - wavelog-uploads:/var/www/html/uploads
+      - wavelog-userdata:/var/www/html/userdata
+    #ports:
+    #  - "8086:80"
+    restart: unless-stopped
+
+  wavelog-caddy:
+    image: caddy-cloudflare:${CADDY_VERSION}
+    build:
+      context: ./caddy-cloudflare
+      args:
+        CADDY_VERSION: ${CADDY_VERSION}
+    container_name: wavelog-caddy
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN}
+      - CADDY_CLOUDFLARE_API_TOKEN=${CADDY_CLOUDFLARE_API_TOKEN}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ${PWD}/config/caddy/Caddyfile:/etc/caddy/Caddyfile
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+
+  wavelog-tailscale:
+    image: tailscale/tailscale:${TAILSCALE_VERSION}
+    container_name: wavelog-tailscale
+    depends_on:
+      - wavelog-main
+    environment:
+      - TS_HOSTNAME=${TAILSCALE_HOSTNAME}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+      - ${PWD}/config/tailscale/serve.json:/config/serve.json
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    network_mode: service:wavelog-main
+    restart: unless-stopped
+
+volumes:
+  wavelog-dbdata:
+  wavelog-uploads:
+  wavelog-userdata:
+  wavelog-config:
+  caddy_data:
+  caddy_config:
+  tailscale_state:
+
