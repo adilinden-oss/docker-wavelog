@@ -34,6 +34,7 @@ services:
 
   wavelog-caddy:
     image: caddy-cloudflare:${CADDY_VERSION}
+    pull_policy: build
     build:
       context: ./caddy-cloudflare
       args:
@@ -78,7 +79,7 @@ services:
   # Run on demand to work with volumes
   #   - docker compose run --rm wavelog-aux
   wavelog-aux:
-    image: debian:12
+    image: debian:${DEBIAN_VERSION}
     container_name: wavelog-aux
     command: /bin/bash
     volumes:
